@@ -3,37 +3,82 @@ title: "The track record"
 description: "Every call logged with a timestamp and score. Wins and misses both shown."
 ---
 
-The track record is the moat — the thing one-shot due-diligence tools structurally cannot have.
+The track record is the moat. A one-shot due-diligence tool can claim it's honest, but it can never *prove* it — there's no record of how its past calls played out. Meridian's record is **honest by construction**: append-only log + scorecard derived on every read.
 
 ## How it works
 
-Every pick the swarm surfaces is written to an **append-only log** with:
+Every pick the swarm surfaces is written to a permanent log (`calls.jsonl` on disk in tests, **MongoDB Atlas** in production). Each record:
 
-| Field | Meaning |
-|---|---|
-| `date` | When the call was made |
-| `rank` + `token` | Which pick on that day |
-| `score_at_call` | The composite score at surfacing time |
-| `price_at_call_usd` | The price when called |
-| `status` | `open`, `hit`, or `miss` (price-derived) |
+| Field | Example | Meaning |
+|---|---|---|
+| `date` | `"2026-05-25"` | When the call was made |
+| `rank` | `1` | Which pick on that day (1 = top) |
+| `token.name / symbol / address` | `"Pulse" / "PULSE" / "Pu1s…"` | Identity at call-time |
+| `score_at_call` | `84` | Composite score at surfacing time |
+| `price_at_call_usd` | `0.00041` | Entry price |
+| `price_now_usd` | `0.00086` | Filled by the update job (DexScreener) |
+| `pct_change` | `109.8` | Computed: `(now - at_call) / at_call × 100` |
+| `status` | `"hit"` | `open` until decided; then `hit` / `miss` |
 
-The **public scorecard** (hits / misses / open + hit rate) is **derived** from the log on every read — so a miss can never be silently dropped.
+The log is **append-only.** No edit, no delete. The scorecard is **derived** from the log on every API read.
 
 ## Outcome rules
 
-- `pct_change` = `(price_now − price_at_call) / price_at_call × 100`
-- **`hit`** if `pct_change ≥ +50%`
-- **`miss`** if `pct_change ≤ −50%`
-- **`open`** otherwise
+The rules are fixed and documented:
 
-Rules are fixed and documented; the log is the source of truth.
+```
+pct_change = (price_now − price_at_call) / price_at_call × 100
+
+if pct_change ≥ +50%   →  hit
+if pct_change ≤ −50%   →  miss
+otherwise              →  open
+```
+
+A pick stays `open` until it crosses one of those thresholds. Some calls stay open for weeks — that's normal, and the scorecard shows them honestly.
+
+<Note>
+  Hit/miss thresholds are intentionally **symmetric and wide**. A 50% move is meaningful; a 10% move is noise. Anything in between stays `open` — we don't claim a win on a chop.
+</Note>
 
 ## See it live
 
-- **Web** — the [Today's Shortlist page](https://meridian-udkd.vercel.app/demo) shows the track record below the picks.
-- **Bot** — send `/track` to [@usemeridianbot](https://t.me/usemeridianbot).
-- **API** — `GET /api/track-record` ([reference](api-reference)).
+<CardGroup cols={3}>
+  <Card title="Web" icon="window" href="https://meridian-udkd.vercel.app/demo">
+    The `/demo` page renders the track record below the day's picks.
+  </Card>
+  <Card title="Telegram" icon="paper-plane" href="https://t.me/usemeridianbot">
+    `/track` on [@usemeridianbot](https://t.me/usemeridianbot) returns the full scorecard.
+  </Card>
+  <Card title="API" icon="code" href="api-reference">
+    `GET /api/track-record` returns the scorecard + recent calls as JSON.
+  </Card>
+</CardGroup>
 
-## Why it's honest by construction
+## Verify it yourself
 
-You can't selectively show wins, because the log isn't editable and the scorecard is derived from it. If we make a bad call, it shows up. That's the whole point — and it's the reason holders can trust the daily call tomorrow.
+The whole point is that you don't have to trust us. Three checks anyone can run:
+
+<Steps>
+  <Step title="Pull the raw scorecard">
+    ```bash
+    curl https://meridian-backend-qae0.onrender.com/api/track-record | python3 -m json.tool
+    ```
+    Every call we've made shows up. Hits and misses both.
+  </Step>
+  <Step title="Reproduce a hit / miss yourself">
+    Take any call from the list. Re-fetch its price from DexScreener. Apply the formula:
+    ```
+    pct_change = (current_price − price_at_call_usd) / price_at_call_usd × 100
+    ```
+    Your answer should match the `pct_change` on the record (within tick rounding).
+  </Step>
+  <Step title="Read the source">
+    The outcome rules live in [`backend/meridian/trackrecord/update.py`](https://github.com/Enoch208/Meridian/blob/main/backend/meridian/trackrecord/update.py). The append-only invariant lives in [`store.py`](https://github.com/Enoch208/Meridian/blob/main/backend/meridian/trackrecord/store.py). Both are ~80 lines, both testable, both in the open.
+  </Step>
+</Steps>
+
+## Why this matters
+
+Hold-to-unlock for `$MRDN` only works if the call is worth holding for. The track record is what makes that call worth holding for — every day's pick is a deposit into a credibility account that compounds.
+
+If we make a bad call, it shows up. We can't selectively show wins because the log isn't editable and the scorecard isn't computed by us — it's derived. That's the deal.

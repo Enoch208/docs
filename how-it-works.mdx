@@ -1,40 +1,84 @@
 ---
 title: "How it works"
-description: "Scan → Score → Call. Three phases, one swarm."
+description: "Scan → Score → Call. The full pipeline, end to end."
 ---
 
-<Steps>
-  <Step title="Scan">
-    The scouts ingest every new Solana pair the moment it appears — pulling mint authorities, liquidity, momentum, and wallet flows into a single candidate stream. No manual scanning across a dozen tabs.
-  </Step>
-  <Step title="Score">
-    Each scout grades the one signal it owns; a lead synthesizes them into one composite score against a [transparent rubric](scoring-rubric). Unverifiable signals are marked **Unknown** and down-weighted — never invented to justify a pick.
-  </Step>
-  <Step title="Call">
-    The day's top picks are ranked with their strongest reasons, the standout risk, and a one-line read — then logged with a timestamp and score to the [public track record](track-record). Worth investigating, never financial advice.
-  </Step>
-</Steps>
+Meridian's pipeline is three phases, three data sources, and one rule that overrides everything else: **Unknown is Unknown — never invented.**
 
-## Pipeline
+## The pipeline
 
 ```mermaid
 flowchart LR
-    DS["DexScreener<br/>new pairs · volume · txns"] --> EN["Datafeed + enrich"]
+    DS["DexScreener<br/>new pairs · volume · txns · socials"] --> EN["Datafeed<br/>+ enrich"]
     RPC["Solana RPC<br/>mint &amp; freeze authority"] --> EN
     JUP["Jupiter<br/>liquidity · holders · price"] --> EN
-    EN --> PF{"Prefilter<br/>trap check"}
+    EN --> PF{"Prefilter<br/>deterministic trap drop"}
     PF -->|"survivors"| S["Scout swarm"]
-    S --> L["Lead synthesis"]
-    L --> R["Ranked top-3"]
-    R --> TR[("Track record<br/>append-only")]
+    PF -->|"obvious traps"| X["Disqualified"]
+    subgraph S["Scout swarm (Swarms cloud API)"]
+        direction TB
+        A1["On-chain scout"]
+        A2["Liquidity scout"]
+        A3["Momentum scout"]
+        A4["Smart-money 🔜 v1.5"]
+    end
+    S --> L["Scout lead<br/>synthesize &amp; rank"]
+    L --> R["Ranked top-3<br/>(composite + reasons + risk + read)"]
+    R --> TR[("Append-only log<br/>calls.jsonl")]
+    R --> API["FastAPI service"]
+    TR --> API
+    API --> WEB["Web (/demo, /evaluate)"]
+    API --> BOT["Telegram bot"]
 ```
 
-## Data sources
+## Phase 1 — Scan
+
+The scouts ingest every new Solana pair the moment it appears. **Three sources are read in parallel:**
 
 | Source | What it provides |
 |---|---|
-| **DexScreener** | New pairs, volume, buy/sell counts, socials, image |
-| **Solana RPC** | Mint authority, freeze authority — the on-chain truth |
-| **Jupiter** | Bonding-curve liquidity & price (where DexScreener lacks it), holder count, top-holders %, dev wallet, organic score |
+| **DexScreener** | New pairs, USD liquidity, volume, buy/sell tx counts, socials, token image |
+| **Solana RPC** | Mint authority + freeze authority — the on-chain truth, not market metadata |
+| **Jupiter** | Bonding-curve liquidity & price (where DexScreener lacks it), **holder count**, **top-holders %**, dev wallet, organic score, launchpad |
 
-Every source is public, read-only, and free. The combination is what lets Meridian score brand-new launches (including bonding-curve tokens DexScreener hasn't fully indexed yet) the moment they appear.
+<Note>
+  Jupiter is what lets Meridian score **brand-new launches and bonding-curve tokens** (e.g. swarms.world Frenzy Mode) the moment they appear — DexScreener often has the pair but no LP liquidity for a curve-only token. Jupiter reads the curve directly.
+</Note>
+
+Every numeric field that's missing comes through as `None`. There is no silent zero, no "0 means missing."
+
+## Phase 2 — Score
+
+Survivors of the prefilter hit the **scout swarm**: three live specialist agents + a lead. Each scout grades only the one signal it owns; the lead synthesizes them.
+
+The swarm runs in two modes:
+
+| Mode | Where it's used | Cost |
+|---|---|---|
+| **Deterministic (mock)** | `/evaluate`, tests, demos | Free, instant |
+| **Live (Swarms cloud API)** | The daily shortlist run | Credit-bearing (zero under Frenzy Mode) |
+
+Both share the same rubric, the same honesty rules, and the same response shape — so the on-demand `/evaluate` is a faithful preview of what a daily call would look like.
+
+See [The scouts](the-scouts) for what each scout watches, and [Scoring rubric](scoring-rubric) for how scores combine.
+
+## Phase 3 — Call
+
+The lead emits the day's top-3 with:
+
+- a **composite score** (0–100)
+- the **scout sub-scores** (with `null` for Unknown)
+- the **two strongest reasons** the token surfaced
+- the **single standout risk** (always named)
+- a **plain-English one-line read**
+- the list of **`unknowns`** (so gaps are explicit)
+
+Each call is appended to a permanent log (`calls.jsonl` or MongoDB) with a timestamp and the score at-time-of-call. The [public track record](track-record) is **derived** from that log on every read.
+
+## Why this architecture
+
+- **Single-signal scouts are auditable.** A monolithic "evaluator" hides reasoning; a swarm shows it.
+- **Three independent sources reduce single-vendor failure.** DexScreener missing a field? Jupiter fills it. Solana RPC down? The on-chain check degrades to Unknown rather than fabricating.
+- **An append-only log is the only honest moat.** You can't selectively show wins if the source of truth is immutable and the scorecard is derived.
+
+Next: [the scouts in detail](the-scouts).

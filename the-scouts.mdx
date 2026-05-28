@@ -3,22 +3,99 @@ title: "The scouts"
 description: "Three live specialists + a lead. Each watches one signal it can verify."
 ---
 
-| Scout | Watches | Surfaces / flags | Status |
-|---|---|---|---|
-| **On-chain** | Mint authority, freeze authority, pair age | Disqualifies obvious traps; flags un-renounced authorities and very young pairs | ✅ live |
-| **Liquidity** | Pool size (USD), liquidity-to-FDV ratio | Filters illiquid / exit-rug setups | ✅ live |
-| **Momentum** | Buy/sell pressure + 24h price change, **weighted by volume** | Surfaces early traction without confusing thin-volume noise for signal | ✅ live |
-| **Smart-money** | Notable / clustered wallet entries | The "who's already in" signal | 🔜 v1.5 |
-| **Scout lead** | All scout outputs | Synthesizes the ranked shortlist + rationale | ✅ live |
+A scout watches **one signal** and grades only what it can verify. If the signal is missing, the scout returns `null` (Unknown) — not zero. The lead synthesizes the four scouts into the final ranked pick.
 
-## Why a single signal each
+| Scout | Watches | Status |
+|---|---|---|
+| **On-chain** | Mint authority, freeze authority, pair age | ✅ live |
+| **Liquidity** | Pool size (USD), liquidity-to-FDV ratio | ✅ live |
+| **Momentum** | Buy/sell pressure + 24h change, **weighted by volume** | ✅ live |
+| **Smart-money** | Notable / clustered wallet entries | 🔜 v1.5 |
+| **Scout lead** | All scout outputs → ranked shortlist | ✅ live |
 
-The swarm grades only what it can verify. A scout that watches one signal can be evaluated, falsified, and improved — and the rubric stays auditable. A monolithic "evaluator" hides its reasoning; a swarm shows it.
+---
 
-## The lead
+## On-chain scout
 
-The lead reads the scout outputs, weights them against the rubric, and emits the final pick. It is **bound by the [honesty rules](scoring-rubric#honesty-rules)** — Unknown stays Unknown, absence of evidence is a mild negative, and every positive pick must name its standout risk.
+**Watches** — `mint_authority` and `freeze_authority` from a Solana RPC `getAccountInfo` on the mint account, plus `pair_age` (hours since pair creation).
 
-## Smart-money in v1.5
+**Scoring rules:**
 
-Smart-money tracking — clustered known-wallet entries, top-trader detection — needs an indexer of historical wallet behavior that we haven't shipped yet. Until it does, every pick lists `smart_money` in its `unknowns` field. **No invented signal.**
+| Authority state | Score | Read |
+|---|---|---|
+| Both renounced | **85** | "Mint & freeze authority renounced" |
+| One renounced, one live | **55** | "One authority still live — partial risk" |
+| Both live | **20** | "Mint/freeze authority live — rug risk" |
+| Both unverifiable | **Unknown** | excluded from composite, added to `unknowns` |
+
+**Why it matters** — a token with live mint or freeze authority can be inflated (mint) or frozen (freeze) by the dev at any time. Renouncing both is the on-chain commitment that the float is fixed and tradeable.
+
+---
+
+## Liquidity scout
+
+**Watches** — `liquidity_usd` from DexScreener, falling back to **Jupiter's bonding-curve liquidity** when DexScreener has nothing (essential for fresh launchpad tokens).
+
+**Scoring** — `_scale(liquidity_usd, $50000)`: linear up to $50k → score 100, with floor 0.
+
+**Caveats:**
+
+- If liquidity is `None` after both sources, the scout returns `null` and **caps the overall composite at 70** — a token can't read as "clean" with unverifiable liquidity.
+- Liquidity below $10k flips the standout risk to "Thin liquidity — exit-rug risk."
+
+**Why it matters** — liquidity is the only thing that lets you actually sell. A token with $500 LP cannot absorb a $5k exit without massive slippage.
+
+---
+
+## Momentum scout
+
+**Watches** — 1h buy/sell tx counts (DexScreener with Jupiter fallback) + 24h price change (Jupiter) + 24h volume (DexScreener).
+
+**Scoring formula:**
+
+```
+pressure   = 50 + (buy_sell_ratio - 1) × 20      # 1.0x → 50, 3.5x → 100, clamped
+pressure  += clamp(-25, +25, price_change_24h / 4)
+confidence = min(1.0, volume_24h / $25k)         # ~$25k 24h = full weight
+momentum   = pressure × (0.45 + 0.55 × confidence)
+```
+
+The **volume-weighted confidence** is the key honesty trick: a 9:1 buy/sell ratio on $500/24h is noise, not signal. The formula recognizes that.
+
+**Worked example — $MRDN at low volume:**
+
+- buy/sell ratio 9.0 → raw pressure 100
+- 24h change −50% → pressure −13 → 87 then clamped
+- volume $651 → confidence 0.026
+- momentum = 87 × (0.45 + 0.55 × 0.026) ≈ **40 → 8 after rounding**
+
+Compared with what a naive "ratio × scaling" would say (100/100), this is honest.
+
+---
+
+## Smart-money scout (v1.5)
+
+<Warning>
+  Not active yet. Every pick in v1 lists `smart_money` in its `unknowns` field. **No invented signal.**
+</Warning>
+
+**Planned (v1.5):**
+
+- Cluster detection on the first N buyers — is the float concentrated in known smart wallets or known farm wallets?
+- Top-trader proximity — has any wallet with a 3-month positive PnL bought in the first hour?
+- Dev wallet behavior — is the dev still net-buying or net-selling against the curve?
+
+Smart-money tracking needs an indexer of historical wallet behavior we haven't shipped yet. Until it does, the rubric explicitly excludes it from the composite — no estimating, no proxying.
+
+---
+
+## The scout lead
+
+The lead reads the four scout outputs, weights them against the [rubric](scoring-rubric), and emits the final pick. It's **bound by the [honesty rules](honesty-model)**:
+
+1. Unknown stays Unknown.
+2. The standout risk on a positive pick must be named.
+3. "Worth investigating," never "buy."
+4. Absence of evidence is a mild negative, not neutral.
+
+In the live mode, the lead is a Swarms cloud agent with the system prompt that ships with the [marketplace listing](https://swarms.world). In the deterministic mode (used by `/evaluate`), the lead is the `_score_candidate()` function in [`backend/meridian/scouts/swarm.py`](https://github.com/Enoch208/Meridian/blob/main/backend/meridian/scouts/swarm.py).

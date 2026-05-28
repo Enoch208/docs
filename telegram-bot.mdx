@@ -3,24 +3,25 @@ title: "Telegram bot"
 description: "The daily call where traders already live — @usemeridianbot."
 ---
 
-The bot is a thin client over the Meridian API. DM it, get the call.
+The bot is a thin Python client over the Meridian API. It long-polls Telegram, formats responses in HTML, and runs anywhere with outbound HTTPS. ~250 lines, no extra deps over the backend.
 
 [**Open @usemeridianbot →**](https://t.me/usemeridianbot)
 
 ## Commands
 
-| Command | What it does |
-|---|---|
-| `/start` | Intro + disclaimer |
-| `/picks` | Today's ranked shortlist (top-3 + scout breakdown + reasons + risk) |
-| `/track` | The public track record (hits, misses, open + recent calls) |
-| `/check <address>` | Score any Solana token on the spot |
-| `/help` | Same as `/start` |
+| Command | What it does | Hits |
+|---|---|---|
+| `/start` · `/help` | Intro + disclaimer | none (static) |
+| `/picks` | Today's ranked shortlist | `GET /api/daily-shortlist` |
+| `/track` | Public track record (hits + misses + open) | `GET /api/track-record` |
+| `/check <address>` | Score any Solana token | `POST /api/evaluate` |
+
+Sends an instant *"scanning…"* / *"pulling…"* ack and **edits the same message** with the result — so a cold-starting backend never leaves the user staring at silence.
 
 ## Example replies
 
-`/picks`:
-
+<Tabs>
+  <Tab title="/picks">
 ```
 🛰 Today's shortlist · 2026-05-27
 
@@ -30,11 +31,18 @@ The bot is a thin client over the Meridian API. DM it, get the call.
   Clean signals across the board — worth investigating.
 
 #2  $ORBT — score 82/100
-  …
+  ✓ Buyer-led 2.4x buy/sell (1h)
+  ⚠ Risk: Liquidity unverified — could be thin
+  Mixed signals with upside — worth investigating with care.
+
+#3  $HELIX — score 74/100
+  ...
+
+Worth investigating — never financial advice.
 ```
+  </Tab>
 
-`/check <address>`:
-
+  <Tab title="/check <address>">
 ```
 🔎 $MRDN — score 31/100
 Meridian
@@ -43,24 +51,60 @@ On-chain 85 · Liquidity 0 · Momentum 8 · Smart-money —
 
 💧 $651 liq · 👥 19 holders · 24h −50%
 
+✓ Mint & freeze authority renounced
+✓ Thin liquidity $651
 ⚠ Risk: Thin liquidity — exit-rug risk
 Weak or unverified signals — investigate cautiously.
 
 Worth investigating — never financial advice.
 ```
+  </Tab>
 
-## What it doesn't do
+  <Tab title="/track">
+```
+📊 Track record
+Calls: 27 · Hits: 11 · Misses: 8 · Open: 8
+Hit rate: 58%
 
-The bot doesn't trade, doesn't recommend buys, and doesn't track wallets. It's a delivery surface for the swarm's calls — research, not advice.
+▲ $PULSE · scored 84 · hit · 2026-05-25
+▼ $VOID · scored 66 · miss · 2026-05-24
+▲ $LUMEN · scored 79 · hit · 2026-05-23
+• $DRIFT · scored 71 · open · 2026-05-25
+...
 
-## Run it yourself
+Wins and misses both shown. Not financial advice.
+```
+  </Tab>
+</Tabs>
 
-The bot is open source. To run a private instance:
+## Why a bot
+
+Crypto alpha lives in Telegram. The daily call is a DM, not a tab to refresh. The bot exists because that's where the audience already is — and because chat is a natural delivery surface for a once-a-day signal.
+
+The web `/demo` and the bot serve the **same data** through the same API; they're parallel surfaces, not hierarchical.
+
+## Run your own
+
+The bot is open source — run a private mirror in three steps:
 
 ```bash
-cd backend
+git clone https://github.com/Enoch208/Meridian
+cd Meridian/backend
+python3 -m venv .venv
 .venv/bin/pip install httpx python-dotenv
-echo "TELEGRAM_BOT_TOKEN=<your token from @BotFather>" >> .env
-echo "MERIDIAN_API_URL=https://meridian-backend-qae0.onrender.com" >> .env
+
+cat > .env <<EOF
+TELEGRAM_BOT_TOKEN=<token from @BotFather>
+MERIDIAN_API_URL=https://meridian-backend-qae0.onrender.com
+EOF
+
 .venv/bin/python -m meridian.bot
 ```
+
+For always-on, use **pm2** on a VPS (cheapest), a **systemd unit**, or a Render background worker (paid tier). See [Architecture → Running it yourself](architecture).
+
+## Caveats
+
+- **Render free-tier cold start.** First request after ~15 min idle takes ~30s. The bot sends an instant ack so it doesn't feel dead.
+- **No wallet connection in chat.** Hold-to-unlock is a web-only feature (Reown / Phantom). The bot delivers what the API exposes publicly — the daily shortlist, the track record, single-token evaluations. (Holder-gated content stays web-side.)
+- **No financial advice. Ever.** Every reply ends with the disclaimer.

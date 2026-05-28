@@ -1,45 +1,99 @@
 ---
 title: "Quickstart"
-description: "Three ways to use Meridian — under a minute each."
+description: "Three paths in — pick the one that fits how you work."
 ---
 
-## On Telegram
+<Tabs>
+  <Tab title="Traders (60 seconds)">
+    The fastest way in is Telegram.
 
-<Steps>
-  <Step title="Open the bot">
-    [@usemeridianbot](https://t.me/usemeridianbot)
-  </Step>
-  <Step title="Send a command">
-    - `/picks` — today's ranked shortlist
-    - `/track` — the public track record
-    - `/check <address>` — score any Solana token
-  </Step>
-</Steps>
+    <Steps>
+      <Step title="Open the bot">
+        [@usemeridianbot](https://t.me/usemeridianbot)
+      </Step>
+      <Step title="Send a command">
+        - `/picks` — today's ranked shortlist
+        - `/track` — the public track record (hits + misses)
+        - `/check <address>` — score any Solana token on the spot
+      </Step>
+      <Step title="(Optional) Open the web demo">
+        [`/demo`](https://meridian-udkd.vercel.app/demo) shows the same data with the full market grid and an unlock flow for holders.
+      </Step>
+    </Steps>
 
-## On the web
+    <Tip>
+      Calls are framed as **worth investigating**, never **buy**. Every positive pick names its standout risk.
+    </Tip>
+  </Tab>
 
-| Page | What it does |
-|---|---|
-| [`/demo`](https://meridian-udkd.vercel.app/demo) | Today's ranked shortlist + the live track record |
-| [`/evaluate`](https://meridian-udkd.vercel.app/evaluate) | Paste any Solana token, get a full scorecard |
+  <Tab title="Developers">
+    Three public, read-only endpoints. No auth needed.
 
-## For developers
+    <CodeGroup>
+    ```bash curl
+    # Today's shortlist
+    curl https://meridian-backend-qae0.onrender.com/api/daily-shortlist
 
-The backend is a FastAPI service. Full schema is in the [API Reference](api-reference).
+    # Score any token
+    curl -X POST https://meridian-backend-qae0.onrender.com/api/evaluate \
+      -H "content-type: application/json" \
+      -d '{"token":"G7L2LRZyoE6FZgFo51Betj88UPMdnNi1iYmBrpfpswrm"}'
 
-```bash
-# Today's shortlist
-curl https://meridian-backend-qae0.onrender.com/api/daily-shortlist
+    # Public track record
+    curl https://meridian-backend-qae0.onrender.com/api/track-record
+    ```
 
-# Score any token
-curl -X POST https://meridian-backend-qae0.onrender.com/api/evaluate \
-  -H "content-type: application/json" \
-  -d '{"token":"G7L2LRZyoE6FZgFo51Betj88UPMdnNi1iYmBrpfpswrm"}'
+    ```python python
+    import httpx
+    BASE = "https://meridian-backend-qae0.onrender.com"
 
-# Public track record (wins + misses)
-curl https://meridian-backend-qae0.onrender.com/api/track-record
-```
+    shortlist = httpx.get(f"{BASE}/api/daily-shortlist").json()
+    print(shortlist["picks"][0]["composite_score"])
 
-<Tip>
-  All endpoints are public and read-only. The only protected one is `POST /api/run` (regenerates the daily shortlist; gated by a server-side secret).
-</Tip>
+    pick = httpx.post(f"{BASE}/api/evaluate", json={
+        "token": "G7L2LRZyoE6FZgFo51Betj88UPMdnNi1iYmBrpfpswrm"
+    }).json()
+    ```
+
+    ```ts typescript
+    const BASE = "https://meridian-backend-qae0.onrender.com";
+
+    const shortlist = await fetch(`${BASE}/api/daily-shortlist`).then(r => r.json());
+
+    const pick = await fetch(`${BASE}/api/evaluate`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token: "G7L2…swrm" }),
+    }).then(r => r.json());
+    ```
+    </CodeGroup>
+
+    <Tip>
+      Full schema in the [API Reference](api-reference) tab. It's pulled live from the FastAPI service's `/openapi.json` — every new endpoint shows up the moment the backend redeploys.
+    </Tip>
+  </Tab>
+
+  <Tab title="Self-host">
+    The bot is a thin client over the API — run it anywhere with Python and outbound HTTPS.
+
+    ```bash
+    git clone https://github.com/Enoch208/Meridian
+    cd Meridian/backend
+    python3 -m venv .venv
+    .venv/bin/pip install httpx python-dotenv
+
+    cat > .env <<EOF
+    TELEGRAM_BOT_TOKEN=<your token from @BotFather>
+    MERIDIAN_API_URL=https://meridian-backend-qae0.onrender.com
+    EOF
+
+    .venv/bin/python -m meridian.bot
+    ```
+
+    For an always-on deploy: see [Architecture → Running it yourself](architecture).
+  </Tab>
+</Tabs>
+
+## Disclaimer
+
+This is a research tool. Every pick is framed as worth investigating; the standout risk is always named. Nothing on this site or in the bot is financial advice. Do your own work.

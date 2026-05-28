@@ -3,39 +3,46 @@ title: "Evaluate any token"
 description: "Paste a Solana mint, get a full scorecard against the same rubric."
 ---
 
-The Evaluate page ([`/evaluate`](https://meridian-udkd.vercel.app/evaluate)) scores a single token on demand using the same scout swarm that builds the daily shortlist.
+The Evaluate page ([`/evaluate`](https://meridian-udkd.vercel.app/evaluate)) scores a single token on demand using the deterministic version of the scout swarm — same rubric, same honesty rules, instant.
+
+<Note>
+  Evaluate is a **power tool for holders**, not the headline. Meridian's product is *discovery* (the daily shortlist). On-demand DD is the bonus.
+</Note>
 
 ## What you get
 
 For any pasted mint, the response includes:
 
-- **Composite score** (0–100) + the four sub-scores
-- **Market metrics** — price, 24h change, liquidity, market cap, 24h volume, age, holders, buys/sells (1h)
-- **Honesty signals** — mint/freeze authority status, **dev-wallet holding %**, **top-holders %**, organic score
-- **Top reasons** the scouts surfaced
-- **Standout risk** (always)
-- **Plain-English one-line read**
-- **Token identity** — icon, name, launchpad, socials (when the token has a profile)
+<CardGroup cols={2}>
+  <Card title="Composite score" icon="gauge">
+    A 0–100 against the [rubric](scoring-rubric), with each sub-score broken out (`null` where Unknown).
+  </Card>
+  <Card title="Top reasons + standout risk" icon="list">
+    Two strongest reasons it surfaced + the single biggest risk you should know.
+  </Card>
+  <Card title="Market metrics" icon="chart-mixed">
+    Price, 24h change, liquidity, market cap, 24h volume, age, holders, buys/sells (1h).
+  </Card>
+  <Card title="Honesty signals" icon="shield-halved">
+    Mint/freeze authority status, dev-wallet holding %, top-holders %, organic score, launchpad.
+  </Card>
+</CardGroup>
 
 ## How to use it
 
 <Steps>
-  <Step title="Paste a mint address">
-    Solana mint or pair address (base58, 32–44 chars).
+  <Step title="Paste a mint or pair address">
+    Solana base58, 32–44 chars. The UI accepts either a mint or a DexScreener pair.
   </Step>
   <Step title="Hit Evaluate">
-    The backend hits DexScreener + Solana RPC + Jupiter in parallel and scores in seconds.
+    The backend hits DexScreener + Solana RPC + Jupiter in parallel, then scores. Sub-second for most tokens.
   </Step>
-  <Step title="Read the result">
-    Composite + scout breakdown + market grid + reasons + risk + read. Worth investigating — never financial advice.
+  <Step title="Read the card">
+    Composite + scout grid + market grid + reasons + risk + read. *Worth investigating — never financial advice.*
   </Step>
 </Steps>
 
-## On Telegram
-
-The same call is one DM away — send `/check <address>` to [@usemeridianbot](https://t.me/usemeridianbot).
-
-## Via API
+## API
 
 ```bash
 curl -X POST https://meridian-backend-qae0.onrender.com/api/evaluate \
@@ -43,8 +50,96 @@ curl -X POST https://meridian-backend-qae0.onrender.com/api/evaluate \
   -d '{"token":"G7L2LRZyoE6FZgFo51Betj88UPMdnNi1iYmBrpfpswrm"}'
 ```
 
-The response shape mirrors a single pick from the daily shortlist (plus optional `security` enrichment). Full schema in the [API Reference](api-reference).
+### Example response (real, for $MRDN)
 
-<Note>
-  Evaluate is a **power tool for holders** — it lets you score any token against the same rubric. The product's headline is still *discovery* (the daily shortlist), not paste-a-token DD.
-</Note>
+```json
+{
+  "found": true,
+  "pick": {
+    "rank": 1,
+    "token": {
+      "name": "Meridian",
+      "symbol": "MRDN",
+      "address": "G7L2LRZyoE6FZgFo51Betj88UPMdnNi1iYmBrpfpswrm",
+      "pair_url": "https://dexscreener.com/solana/ftgw7etwsgyxezgwnr1p1hg3p6wce8yedanxjfa6ztsy",
+      "image_url": "https://static-create.jup.ag/images/G7L2…swrm",
+      "twitter": null,
+      "telegram": null,
+      "website": null
+    },
+    "composite_score": 31,
+    "scores": {
+      "onchain": 85,
+      "liquidity": 1,
+      "momentum": 8,
+      "smart_money": null
+    },
+    "top_reasons": [
+      "Mint & freeze authority renounced",
+      "Thin liquidity $651"
+    ],
+    "standout_risk": "Thin liquidity — exit-rug risk",
+    "one_line_read": "Weak or unverified signals — investigate cautiously.",
+    "metrics": {
+      "price_usd": 3.16e-6,
+      "price_change_24h": -50.4,
+      "liquidity_usd": 651.1,
+      "fdv": 3162.5,
+      "market_cap": 3162.5,
+      "volume_h24": 651.1,
+      "age_hours": 11.6,
+      "buys_h1": 0,
+      "sells_h1": 0,
+      "holder_count": 19,
+      "top_holders_pct": 31.49,
+      "dev_holding_pct": 0.0,
+      "organic_score": "low",
+      "launchpad": "swarms.world",
+      "mint_authority": "renounced",
+      "freeze_authority": "renounced"
+    },
+    "unknowns": ["smart_money"]
+  },
+  "security": null,
+  "disclaimer": "Not financial advice. 'Worth investigating', never 'buy'.",
+  "error": null
+}
+```
+
+### Error states
+
+| Case | Response |
+|---|---|
+| Token not on Solana / not on DexScreener or Jupiter | `200 { "found": false, "error": "No Solana pair found for that token." }` |
+| Empty `token` in body | `400 { "detail": "token required" }` |
+| Backend cold-starting (Render free) | First request takes ~30s; subsequent are fast |
+
+The endpoint **never throws on bad input** — it always returns a valid `EvaluateResponse` shape, so a frontend can render the error path cleanly.
+
+## On Telegram
+
+The same call is one DM away:
+
+```
+/check G7L2LRZyoE6FZgFo51Betj88UPMdnNi1iYmBrpfpswrm
+```
+
+→ [@usemeridianbot](https://t.me/usemeridianbot). Returns the same data formatted for chat.
+
+## Embedding it
+
+The endpoint is public and CORS-open. You can call it directly from a browser without a proxy:
+
+```ts
+const res = await fetch(
+  "https://meridian-backend-qae0.onrender.com/api/evaluate",
+  {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ token: mint }),
+  }
+);
+const data = await res.json();
+```
+
+Full schema in the [API Reference](api-reference).

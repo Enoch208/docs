@@ -1,51 +1,100 @@
 ---
 title: "The scoring rubric"
-description: "How a composite 0-100 score is built — transparently and honestly."
+description: "How a composite 0-100 score is built — with the formulas and a worked example."
 ---
+
+The rubric is the contract. It's the same formula whether you're looking at the daily shortlist or the on-demand `/evaluate` — same scouts, same math, same honesty rules.
 
 ## Composite score
 
-Every token gets a single **composite score (0–100)** derived from the live scouts:
-
-| Score | Tier | Read |
+| Score | Tier | Read on the card |
 |---|---|---|
-| **75 – 100** | Strong | Clean signals across the board |
-| **55 – 74** | Mixed | Mixed signals with upside — investigate with care |
-| **0 – 54** | Weak | Weak or unverified signals — investigate cautiously |
+| **75 – 100** | Strong | *Clean signals across the board — worth investigating.* |
+| **55 – 74** | Mixed | *Mixed signals with upside — worth investigating with care.* |
+| **0 – 54** | Weak | *Weak or unverified signals — investigate cautiously.* |
 
-The composite is the average of the **available** sub-scores. Unknowns are excluded so missing data doesn't pretend to be a 0.
+The composite is the **average of the available sub-scores** — Unknowns are *excluded*, never imputed as 0:
+
+```
+composite = mean(s for s in [onchain, liquidity, momentum] if s is not None)
+
+if liquidity is None:
+    composite = min(composite, 70)   # absence-of-evidence cap
+```
+
+That second line is important. Unverifiable liquidity caps the score at 70 — a token can't read as "clean" while its single biggest risk signal is missing.
 
 ## Sub-scores
 
-| Scout | How it's scored |
+See [the scouts](the-scouts) for the per-scout rules. In short:
+
+| Scout | Range | Unknown when… |
+|---|---|---|
+| **On-chain** | 20 / 55 / 85 | Both mint + freeze authorities unverifiable |
+| **Liquidity** | 0–100, scaled at $50k = 100 | No source has `liquidity_usd` |
+| **Momentum** | 0–100, **volume-weighted** | No buy/sell ratio AND no volume AND no 24h change |
+| **Smart-money** | **always None in v1** | The dedicated scout ships in v1.5 |
+
+## Worked example — $MRDN
+
+A live walkthrough on **$MRDN** (the Meridian token itself) from the on-demand `/evaluate`:
+
+**Inputs (from DexScreener + Solana RPC + Jupiter):**
+
+| Field | Value |
 |---|---|
-| **On-chain** | 85 if both mint + freeze renounced · 55 if one · 20 if both live · **Unknown** if neither verifiable |
-| **Liquidity** | `liquidity_usd` scaled against $50k · **Unknown** if no source has it |
-| **Momentum** | Buy/sell pressure + 24h price change, **weighted by 24h volume** (a 9:1 ratio on $500/day reads thin, not perfect) |
-| **Smart-money** | Always **Unknown** in v1; dedicated scout ships in v1.5 |
+| `mint_authority` | `renounced` |
+| `freeze_authority` | `renounced` |
+| `liquidity_usd` | `$651` *(filled from Jupiter — DexScreener had `null`)* |
+| `buys_h1 / sells_h1` | `0 / 0` *(genuine zero — bug 1 fix preserves this)* |
+| `volume_h24` | `$651` |
+| `price_change_24h` | `-50.4%` |
 
-<Tip>
-  Unknown liquidity **caps the overall composite at 70** — a token can't read as "clean" when its biggest risk signal is unverifiable.
-</Tip>
+**Calculation:**
 
-## Honesty rules
+```
+onchain   = 85           # both renounced
+liquidity = round(651 / 50000 * 100) = 1     # thin
+momentum:
+  pressure   = 50 + (0 - 1) × 20  = 30
+  pressure  += clamp(-25,+25, -50.4 / 4) = -12.6 → 17.4
+  confidence = min(1.0, 651/25000)        = 0.026
+  momentum   = 17.4 × (0.45 + 0.55 × 0.026) ≈ 8
 
-These are baked into every agent's system prompt and the deterministic scorer alike:
+composite = mean(85, 1, 8) ≈ 31
+```
 
-1. **Unknown is Unknown.** If a signal can't be verified, it's marked Unknown and down-weighted — never invented.
-2. **"Worth investigating," never "buy."** Every pick is framed as research, not advice.
-3. **Always name the standout risk.** Omitting it is a scoring error.
-4. **Absence of evidence is a mild negative**, not a neutral.
+**Output:**
 
-The rules are the product's reason to exist — without them, the track record is worth nothing.
+```json
+{
+  "composite_score": 31,
+  "scores": { "onchain": 85, "liquidity": 1, "momentum": 8, "smart_money": null },
+  "top_reasons": [
+    "Mint & freeze authority renounced",
+    "Thin liquidity $651"
+  ],
+  "standout_risk": "Thin liquidity — exit-rug risk",
+  "one_line_read": "Weak or unverified signals — investigate cautiously.",
+  "unknowns": ["smart_money"]
+}
+```
 
-## What gets surfaced on each pick
+A 31 is honest: clean authorities, but real-thin liquidity and weak momentum on tiny volume. The rubric won't dress that up.
 
-Every pick — daily shortlist or on-demand `/evaluate` — carries:
+## What every pick carries
 
-- The **composite score**, plus each sub-score (with `null` for Unknown).
-- **Top reasons** the scouts surfaced (2 strongest).
-- The **standout risk** (always present on a positive pick).
-- A **plain-English one-line read**.
-- The list of **unknowns** (so the gaps are explicit).
-- Full **market metrics** (price, 24h change, liquidity, FDV/MCAP, volume, age, holders, top-holders %, dev-wallet %, organic score, mint/freeze auth, launchpad, socials).
+| Field | Example | Meaning |
+|---|---|---|
+| `composite_score` | `31` | The 0–100 overall |
+| `scores.onchain` | `85` | Authority safety |
+| `scores.liquidity` | `1` | Pool depth (Unknown if no source has it) |
+| `scores.momentum` | `8` | Buy/sell pressure × 24h change × volume confidence |
+| `scores.smart_money` | `null` | v1.5 |
+| `top_reasons` | `["Mint & freeze renounced", "Thin liquidity $651"]` | Two strongest reasons |
+| `standout_risk` | `"Thin liquidity — exit-rug risk"` | Always named on a positive pick |
+| `one_line_read` | `"Weak or unverified…"` | Composite-aware plain-English |
+| `unknowns` | `["smart_money"]` | Explicit list of gaps |
+| `metrics.*` | (full market grid) | price, 24h, liquidity, mcap, vol, age, holders, top-holders %, dev %, auth, launchpad, socials |
+
+Next: the [honesty model](honesty-model) — the four rules that override everything else.

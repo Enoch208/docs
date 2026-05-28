@@ -4,36 +4,59 @@ description: "The discovery layer for Solana launches — find the few worth inv
 ---
 
 <Note>
-  Meridian is research, not advice. Every pick is framed as **"worth investigating,"** never **"buy."** Not financial advice.
+  Meridian is **research, not advice.** Every pick is framed as *"worth investigating,"* never *"buy."* Not financial advice.
 </Note>
 
-## What it is
+## The thesis
 
-Meridian is a swarm of specialized scout agents that continuously scans new Solana token launches, scores each against a transparent rubric, and surfaces the few worth investigating today — with a public, running track record of every call.
+Hundreds of tokens launch on Solana every day; the overwhelming majority are noise or traps. The hard part for a trader isn't evaluating a token they've *already found* — it's **finding the few worth evaluating in the first place**, fast, before the move.
 
-Most agents tell you whether a coin you *already found* is safe. **Meridian tells you which coins are even worth looking at in the first place.**
+Most existing agents answer *"is this token I already brought safe?"* Meridian answers the question that comes before it: **"which tokens should I even be looking at right now?"** That single shift — from reactive evaluation to proactive discovery — is the product.
 
-## Try it
+## What it is, in one paragraph
+
+A swarm of specialized scout agents that continuously scans new Solana token launches, scores each against a transparent rubric, and surfaces the few worth investigating today — with a **public, running track record** of every call. Every signal that can be verified is graded; every signal that can't is marked Unknown and down-weighted — never invented.
+
+## Try it now
 
 <CardGroup cols={3}>
   <Card title="Telegram bot" icon="paper-plane" href="https://t.me/usemeridianbot">
-    DM `/picks` for today's ranked shortlist.
+    DM `/picks` for today's ranked shortlist. `/check <addr>` to score any token.
   </Card>
   <Card title="Evaluate any token" icon="magnifying-glass" href="https://meridian-udkd.vercel.app/evaluate">
-    Paste a Solana mint, get a score on the spot.
+    Paste a Solana mint, get the full scorecard on the spot.
   </Card>
   <Card title="Today's shortlist" icon="list" href="https://meridian-udkd.vercel.app/demo">
-    The daily ranked picks + the public track record.
+    The daily ranked picks + the live public track record.
   </Card>
 </CardGroup>
 
 ## What makes it different
 
-| | One-shot due-diligence | Meridian |
+| | One-shot due-diligence | **Meridian** |
 |---|---|---|
 | **Job** | Evaluate a token you bring | Discover tokens you didn't know about |
 | **Stance** | Defensive — "is it safe?" | Offensive — "where's the edge?" |
 | **Cadence** | One-shot, on demand | Daily, recurring |
 | **Memory** | None | Public, running track record |
+| **Reason to return** | Weak — use once, flip | Strong — the next call is tomorrow |
+| **Viral engine** | A single screenshot | A track record that compounds |
 
-The **public track record** is the moat — it's the thing a paste-a-token verdict structurally can't have.
+The **track record** is the moat — it's the thing a paste-a-token verdict structurally can't have. An honest record of wins *and* misses, in public, is simultaneously the credibility moat, the retention hook, and the viral engine.
+
+## What you'll find in these docs
+
+<CardGroup cols={2}>
+  <Card title="How it works" icon="diagram-project" href="/how-it-works">
+    The Scan → Score → Call pipeline, data sources, and architecture.
+  </Card>
+  <Card title="The scoring rubric" icon="ruler" href="/scoring-rubric">
+    How a 0-100 composite is built, with a worked example.
+  </Card>
+  <Card title="The honesty model" icon="shield-halved" href="/honesty-model">
+    The four rules every agent is bound by — and why they're the product.
+  </Card>
+  <Card title="API reference" icon="code" href="/api-reference">
+    Every endpoint, live-pulled from the FastAPI service.
+  </Card>
+</CardGroup>

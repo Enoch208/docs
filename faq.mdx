@@ -1,0 +1,84 @@
+---
+title: "FAQ"
+description: "Common questions, answered straight."
+---
+
+<AccordionGroup>
+
+  <Accordion title="Is this financial advice?" icon="circle-question">
+    **No.** Every pick is framed as *worth investigating*, never *buy.* Every positive pick names its standout risk. The disclaimer is on every surface — the web card, the bot reply, the API response, and the marketplace listing.
+
+    Meridian is a research tool. What you do with the information is yours.
+  </Accordion>
+
+  <Accordion title="How is this different from a one-shot DD tool?" icon="arrows-left-right">
+    A one-shot tool answers *"is this token I already brought safe?"* — defensively, on a token you fetched yourself.
+
+    Meridian answers the question that comes **before** that: *"which tokens should I even be looking at right now?"* — proactively, against the day's whole launch flow. And every call is logged to a public track record, so the question *"is your scoring any good?"* is verifiable.
+
+    Different job, different cadence, different moat.
+  </Accordion>
+
+  <Accordion title="What is smart-money tracking? Why is it 'Unknown'?" icon="user-secret">
+    Smart-money tracking is the *"who's already in"* signal — has any wallet with a 3-month positive PnL bought into this token in the first hour? Is the float concentrated with known smart wallets or known farm wallets?
+
+    It needs a historical wallet-behavior indexer we haven't shipped yet. Until it does, **every pick lists `smart_money` in its `unknowns` field** — we explicitly don't claim a signal we can't produce. Ships in **v1.5** ([roadmap](roadmap)).
+
+    No estimating. No proxying. Unknown is Unknown.
+  </Accordion>
+
+  <Accordion title="Why does my token have 'Unknown' liquidity?" icon="circle-info">
+    Two common reasons:
+
+    1. **It's a bonding-curve token** (e.g. swarms.world Frenzy launches) and DexScreener returns the pair but no `liquidity.usd`. Meridian falls back to Jupiter's price/v3 endpoint, which reads the curve directly — but if Jupiter also has no route, the field stays Unknown.
+    2. **The pair just listed and DexScreener hasn't indexed liquidity yet.** Usually resolves within a few minutes.
+
+    When liquidity is Unknown, the composite is **capped at 70** (see the [absence-of-evidence rule](honesty-model)) and the standout risk reads *"Liquidity unverified — could be thin."*
+  </Accordion>
+
+  <Accordion title="How are hits and misses computed?" icon="trophy">
+    The outcome rules are fixed and documented:
+
+    ```
+    pct_change = (price_now − price_at_call) / price_at_call × 100
+    hit  if pct_change ≥ +50%
+    miss if pct_change ≤ −50%
+    open otherwise
+    ```
+
+    See [Track record → Outcome rules](track-record#outcome-rules) for the full mechanics + how to verify a hit yourself.
+  </Accordion>
+
+  <Accordion title="Can I run my own bot or backend?" icon="server">
+    **Yes — everything's open source** ([Enoch208/Meridian](https://github.com/Enoch208/Meridian)).
+
+    - **Bot** — three commands and a `.env` ([quickstart self-host tab](quickstart)).
+    - **Backend** — Docker on Render, or run uvicorn anywhere. See [Architecture](architecture).
+    - **Frontend** — Next.js on Vercel, or self-host.
+
+    The only credit-bearing piece is the live Swarms swarm (`run --live`); the deterministic mock swarm runs free and powers `/evaluate` + tests.
+  </Accordion>
+
+  <Accordion title="Is the score gameable?" icon="shield-halved">
+    The rubric is public and the scouts watch on-chain truth (authorities) + market truth (liquidity, volume, tx counts). You **can** game the inputs — e.g. wash-trading to push buy/sell ratio — but the **volume-weighted momentum** scout caps the impact of pressure on thin volume, and **unverifiable liquidity caps the composite at 70.**
+
+    More importantly: the [track record](track-record) catches systematic gaming over time. If a class of token consistently scores high then dumps, the hit rate falls and the credibility falls with it. The market punishes a bad scorecard.
+  </Accordion>
+
+  <Accordion title="What does `$MRDN` actually do?" icon="coin">
+    `$MRDN` is the **subscription token**. Free tier on `/demo` shows 1 pick; holding `$MRDN` unlocks the full ranked shortlist + live track record (the gate reads your wallet balance on-chain via Reown). See [Tokenomics](tokenomics) for the full hold-to-unlock flow.
+
+    It doesn't entitle holders to financial advice. It doesn't pay for anything in-product. It's the access mechanic for the daily call — nothing more, nothing less.
+  </Accordion>
+
+  <Accordion title="Why Solana?" icon="bolt">
+    The launch density is highest there, the on-chain fields the rubric needs (mint/freeze authorities, holder count) are cheaply readable, and the audience (Solana degens) lives where the product needs to live. Multi-chain is on the [roadmap](roadmap) but explicitly **out of scope for v1.**
+  </Accordion>
+
+  <Accordion title="Where do I report a bad call / suggest a feature?" icon="comments">
+    - **GitHub Issues** — [Enoch208/Meridian/issues](https://github.com/Enoch208/Meridian/issues)
+    - **X** — [@MeridianSWRMS](https://x.com/MeridianSWRMS)
+    - **Telegram** — DM [@usemeridianbot](https://t.me/usemeridianbot) and a human will see it.
+  </Accordion>
+
+</AccordionGroup>

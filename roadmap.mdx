@@ -1,0 +1,65 @@
+---
+title: "Roadmap"
+description: "Now / next / later — what's shipped, what's queued, and what's deliberately out."
+---
+
+A short, honest map. Anything not on this page is not on the roadmap.
+
+## Now (v1 — shipped)
+
+<CardGroup cols={2}>
+  <Card title="Scout swarm" icon="circle-check">
+    Three live specialists (on-chain, liquidity, momentum) + a lead synthesizer. Volume-weighted momentum. Composite + standout risk + plain-English read.
+  </Card>
+  <Card title="Public track record" icon="circle-check">
+    Append-only call log (MongoDB Atlas). Scorecard derived on every read. Hit/miss rules fixed and documented.
+  </Card>
+  <Card title="Three surfaces" icon="circle-check">
+    `/demo` (web), `@usemeridianbot` (Telegram), `/evaluate` (on-demand single-token).
+  </Card>
+  <Card title="Hold-to-unlock" icon="circle-check">
+    Reown (Solana) wallet-connect on `/demo`. Reads `$MRDN` balance on-chain at request time. No enrollment.
+  </Card>
+  <Card title="Live API + auto docs" icon="circle-check">
+    FastAPI service with three public read endpoints; `/openapi.json` powers the API tab in these docs.
+  </Card>
+  <Card title="On-chain $MRDN" icon="circle-check">
+    Minted on swarms.world via Frenzy Mode. Mint + freeze authorities renounced. Pool live.
+  </Card>
+</CardGroup>
+
+## Next (v1.5 — in progress)
+
+<CardGroup cols={2}>
+  <Card title="Smart-money scout" icon="user-secret">
+    The dedicated fourth scout. Cluster detection on first N buyers, top-trader proximity, dev wallet behavior against the curve. Requires a historical wallet-behavior indexer we haven't shipped yet — until then, every pick lists `smart_money` as Unknown.
+  </Card>
+  <Card title="Daily refresh cron" icon="clock">
+    A keep-warm + scheduled `/api/run` so the shortlist refreshes on a fixed cadence (no manual triggering, no Render cold-start surprises).
+  </Card>
+  <Card title="Alerts" icon="bell">
+    Optional Telegram + email push when the day's #1 surfaces. Holder-gated.
+  </Card>
+  <Card title="Outcome auto-update" icon="arrows-rotate">
+    The scheduled job that re-pulls prices for open calls and flips status to hit / miss. Currently triggered manually; v1.5 makes it automatic.
+  </Card>
+</CardGroup>
+
+## Later (v2 — queued)
+
+- **Historical track-record view** — month/quarter scorecards, by-scout hit rates, time-series of hit-rate.
+- **Per-scout breakdown surfacing** — when a pick hits or misses, attribute the outcome back to which scout was most predictive.
+- **Multi-chain.** Same rubric, different launch flows. Base + Hyperliquid first, probably.
+- **API rate limits + keys** — once the daily-call audience is big enough that anonymous bursts become a problem.
+- **Custom rubrics for holders.** Tweak the weights, save a personal lens on the daily shortlist.
+
+## Deliberately out of scope
+
+- **Auto-trading / a buy button.** Meridian is research, not a brokerage. Not now, not ever.
+- **A "buy this token" recommendation.** Every pick is *worth investigating*, never *buy*. That phrase doesn't show up anywhere in the product, and won't.
+- **Closed-source scoring.** The rubric is public so it's auditable. If it ever becomes a black box, the track record stops being trustworthy.
+- **A token utility that holders have to spend.** Holding is the gate. There's no burn-to-access, no in-product currency. `$MRDN` accrues value from the credibility of the call — not from being consumed.
+
+## Versioning
+
+The rubric is versioned (`v3` at time of writing). Changes that materially affect scores will bump the version and be noted in [the changelog](https://github.com/Enoch208/Meridian/blob/main/CHANGELOG.md) (when shipped). The honesty rules in [`honesty-model`](honesty-model) are stable — they're the contract.

@@ -23,16 +23,30 @@
             "pages": ["introduction", "quickstart"]
           },
           {
-            "group": "How it works",
-            "pages": ["how-it-works", "the-scouts", "scoring-rubric"]
+            "group": "Concepts",
+            "pages": [
+              "how-it-works",
+              "the-scouts",
+              "scoring-rubric",
+              "honesty-model",
+              "track-record"
+            ]
           },
           {
-            "group": "Surfaces",
-            "pages": ["evaluate", "telegram-bot", "track-record"]
+            "group": "Use it",
+            "pages": ["evaluate", "telegram-bot"]
+          },
+          {
+            "group": "Engineering",
+            "pages": ["architecture"]
           },
           {
             "group": "Token",
             "pages": ["tokenomics"]
+          },
+          {
+            "group": "Resources",
+            "pages": ["faq", "roadmap"]
           }
         ]
       },
