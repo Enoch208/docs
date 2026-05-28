@@ -1,55 +1,73 @@
-# Mintlify Starter Kit
+# Meridian docs — Mintlify
 
-Use the starter kit to get your docs deployed and ready to customize.
+The Meridian docs site is built with [Mintlify](https://mintlify.com): MDX
+pages + a `docs.json` config + auto-generated API reference pulled from the
+FastAPI backend's `/openapi.json`.
 
-Click the green **Use this template** button at the top of this repo to copy the Mintlify starter kit. The starter kit contains examples with
-
-- Guide pages
-- Navigation
-- Customizations
-- API reference pages
-- Use of popular components
-
-**[Follow the full quickstart guide](https://starter.mintlify.com/quickstart)**
-
-## AI-assisted writing
-
-Set up your AI coding tool to work with Mintlify:
+## Local preview
 
 ```bash
-npx skills add https://mintlify.com/docs
+npm i -g mintlify
+cd docs
+mintlify dev
 ```
 
-This command installs Mintlify's documentation skill for your configured AI tools like Claude Code, Cursor, Windsurf, and others. The skill includes component reference, writing standards, and workflow guidance.
+Opens at `http://localhost:3000` with hot reload.
 
-See the [AI tools guides](/ai-tools) for tool-specific setup.
+## Deploy to Mintlify (free)
 
-## Development
+1. Sign in at [mintlify.com](https://mintlify.com) with GitHub.
+2. **Install the Mintlify GitHub app** on the `Meridian` repo.
+3. In the Mintlify dashboard, **set the docs folder path** to `docs/`.
+4. Every push to `main` redeploys automatically.
 
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview your documentation changes locally. To install, use the following command:
+Mintlify will give you a subdomain like `meridian.mintlify.app`. You can map a
+custom domain (e.g. `docs.meridiansw.com`) under **Settings → Custom Domain**.
+
+Once it's live, swap the `LINKS` entry in
+[`frontend/lib/links.ts`](../frontend/lib/links.ts) and the navbar **Docs**
+link will point at it.
+
+## Structure
 
 ```
-npm i -g mint
+docs/
+├── docs.json              ← Mintlify config (theme, nav, openapi)
+├── logo.png               ← shown in the docs navbar
+├── README.md              ← this file
+├── introduction.mdx       ← "Welcome to Meridian"
+├── quickstart.mdx
+├── how-it-works.mdx
+├── the-scouts.mdx
+├── scoring-rubric.mdx
+├── evaluate.mdx
+├── telegram-bot.mdx
+├── track-record.mdx
+└── tokenomics.mdx
 ```
 
-Run the following command at the root of your documentation, where your `docs.json` is located:
+The `launch/` and `superpowers/` subfolders are **internal** docs (the
+listing kit and the project specs) — Mintlify only renders pages listed in
+`docs.json`'s navigation, so they don't appear on the public docs site.
 
-```
-mint dev
-```
+## API Reference
 
-View your local preview at `http://localhost:3000`.
+The **API Reference** tab is generated automatically from
+`https://meridian-backend-qae0.onrender.com/openapi.json` — your FastAPI
+backend serves that for free. New endpoints show up in the docs the moment
+the backend redeploys; no MDX writing needed.
 
-## Publishing changes
+## Adding a new page
 
-Install our GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app) to propagate changes from your repo to your deployment. Changes are deployed to production automatically after pushing to the default branch.
+1. Drop a new `.mdx` file in `docs/`.
+2. Add its slug (filename without `.mdx`) to the right group's `pages` array
+   in [`docs.json`](./docs.json).
+3. Commit + push. Mintlify rebuilds in seconds.
 
-## Need help?
+## Style
 
-### Troubleshooting
-
-- If your dev environment isn't running: Run `mint update` to ensure you have the most recent version of the CLI.
-- If a page loads as a 404: Make sure you are running in a folder with a valid `docs.json`.
-
-### Resources
-- [Mintlify documentation](https://mintlify.com/docs)
+- Voice: confident, plain, presenter-tone. No marketing fluff, no triads.
+- Honesty rules are the rubric — never claim what you can't verify. Say
+  Unknown when it's Unknown.
+- Always include the disclaimer where relevant: *worth investigating, never
+  financial advice.*

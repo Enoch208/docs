@@ -1,0 +1,24 @@
+---
+title: "The scouts"
+description: "Three live specialists + a lead. Each watches one signal it can verify."
+---
+
+| Scout | Watches | Surfaces / flags | Status |
+|---|---|---|---|
+| **On-chain** | Mint authority, freeze authority, pair age | Disqualifies obvious traps; flags un-renounced authorities and very young pairs | ✅ live |
+| **Liquidity** | Pool size (USD), liquidity-to-FDV ratio | Filters illiquid / exit-rug setups | ✅ live |
+| **Momentum** | Buy/sell pressure + 24h price change, **weighted by volume** | Surfaces early traction without confusing thin-volume noise for signal | ✅ live |
+| **Smart-money** | Notable / clustered wallet entries | The "who's already in" signal | 🔜 v1.5 |
+| **Scout lead** | All scout outputs | Synthesizes the ranked shortlist + rationale | ✅ live |
+
+## Why a single signal each
+
+The swarm grades only what it can verify. A scout that watches one signal can be evaluated, falsified, and improved — and the rubric stays auditable. A monolithic "evaluator" hides its reasoning; a swarm shows it.
+
+## The lead
+
+The lead reads the scout outputs, weights them against the rubric, and emits the final pick. It is **bound by the [honesty rules](scoring-rubric#honesty-rules)** — Unknown stays Unknown, absence of evidence is a mild negative, and every positive pick must name its standout risk.
+
+## Smart-money in v1.5
+
+Smart-money tracking — clustered known-wallet entries, top-trader detection — needs an indexer of historical wallet behavior that we haven't shipped yet. Until it does, every pick lists `smart_money` in its `unknowns` field. **No invented signal.**

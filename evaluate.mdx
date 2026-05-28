@@ -1,0 +1,50 @@
+---
+title: "Evaluate any token"
+description: "Paste a Solana mint, get a full scorecard against the same rubric."
+---
+
+The Evaluate page ([`/evaluate`](https://meridian-udkd.vercel.app/evaluate)) scores a single token on demand using the same scout swarm that builds the daily shortlist.
+
+## What you get
+
+For any pasted mint, the response includes:
+
+- **Composite score** (0–100) + the four sub-scores
+- **Market metrics** — price, 24h change, liquidity, market cap, 24h volume, age, holders, buys/sells (1h)
+- **Honesty signals** — mint/freeze authority status, **dev-wallet holding %**, **top-holders %**, organic score
+- **Top reasons** the scouts surfaced
+- **Standout risk** (always)
+- **Plain-English one-line read**
+- **Token identity** — icon, name, launchpad, socials (when the token has a profile)
+
+## How to use it
+
+<Steps>
+  <Step title="Paste a mint address">
+    Solana mint or pair address (base58, 32–44 chars).
+  </Step>
+  <Step title="Hit Evaluate">
+    The backend hits DexScreener + Solana RPC + Jupiter in parallel and scores in seconds.
+  </Step>
+  <Step title="Read the result">
+    Composite + scout breakdown + market grid + reasons + risk + read. Worth investigating — never financial advice.
+  </Step>
+</Steps>
+
+## On Telegram
+
+The same call is one DM away — send `/check <address>` to [@usemeridianbot](https://t.me/usemeridianbot).
+
+## Via API
+
+```bash
+curl -X POST https://meridian-backend-qae0.onrender.com/api/evaluate \
+  -H "content-type: application/json" \
+  -d '{"token":"G7L2LRZyoE6FZgFo51Betj88UPMdnNi1iYmBrpfpswrm"}'
+```
+
+The response shape mirrors a single pick from the daily shortlist (plus optional `security` enrichment). Full schema in the [API Reference](api-reference).
+
+<Note>
+  Evaluate is a **power tool for holders** — it lets you score any token against the same rubric. The product's headline is still *discovery* (the daily shortlist), not paste-a-token DD.
+</Note>

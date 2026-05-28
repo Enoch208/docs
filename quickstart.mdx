@@ -1,47 +1,45 @@
 ---
 title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+description: "Three ways to use Meridian — under a minute each."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
-
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
-
-## Prerequisites
-
-Before you begin, you must have:
-
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+## On Telegram
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
-
-    ```bash
-    npm install your-package
-    ```
+  <Step title="Open the bot">
+    [@usemeridianbot](https://t.me/usemeridianbot)
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
-
-    ```bash
-    your-cli init
-    ```
-  </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
-
-    ```bash
-    your-cli start
-    ```
+  <Step title="Send a command">
+    - `/picks` — today's ranked shortlist
+    - `/track` — the public track record
+    - `/check <address>` — score any Solana token
   </Step>
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+## On the web
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
+| Page | What it does |
+|---|---|
+| [`/demo`](https://meridian-udkd.vercel.app/demo) | Today's ranked shortlist + the live track record |
+| [`/evaluate`](https://meridian-udkd.vercel.app/evaluate) | Paste any Solana token, get a full scorecard |
+
+## For developers
+
+The backend is a FastAPI service. Full schema is in the [API Reference](api-reference).
+
+```bash
+# Today's shortlist
+curl https://meridian-backend-qae0.onrender.com/api/daily-shortlist
+
+# Score any token
+curl -X POST https://meridian-backend-qae0.onrender.com/api/evaluate \
+  -H "content-type: application/json" \
+  -d '{"token":"G7L2LRZyoE6FZgFo51Betj88UPMdnNi1iYmBrpfpswrm"}'
+
+# Public track record (wins + misses)
+curl https://meridian-backend-qae0.onrender.com/api/track-record
+```
+
+<Tip>
+  All endpoints are public and read-only. The only protected one is `POST /api/run` (regenerates the daily shortlist; gated by a server-side secret).
 </Tip>

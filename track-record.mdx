@@ -1,0 +1,39 @@
+---
+title: "The track record"
+description: "Every call logged with a timestamp and score. Wins and misses both shown."
+---
+
+The track record is the moat — the thing one-shot due-diligence tools structurally cannot have.
+
+## How it works
+
+Every pick the swarm surfaces is written to an **append-only log** with:
+
+| Field | Meaning |
+|---|---|
+| `date` | When the call was made |
+| `rank` + `token` | Which pick on that day |
+| `score_at_call` | The composite score at surfacing time |
+| `price_at_call_usd` | The price when called |
+| `status` | `open`, `hit`, or `miss` (price-derived) |
+
+The **public scorecard** (hits / misses / open + hit rate) is **derived** from the log on every read — so a miss can never be silently dropped.
+
+## Outcome rules
+
+- `pct_change` = `(price_now − price_at_call) / price_at_call × 100`
+- **`hit`** if `pct_change ≥ +50%`
+- **`miss`** if `pct_change ≤ −50%`
+- **`open`** otherwise
+
+Rules are fixed and documented; the log is the source of truth.
+
+## See it live
+
+- **Web** — the [Today's Shortlist page](https://meridian-udkd.vercel.app/demo) shows the track record below the picks.
+- **Bot** — send `/track` to [@usemeridianbot](https://t.me/usemeridianbot).
+- **API** — `GET /api/track-record` ([reference](api-reference)).
+
+## Why it's honest by construction
+
+You can't selectively show wins, because the log isn't editable and the scorecard is derived from it. If we make a bad call, it shows up. That's the whole point — and it's the reason holders can trust the daily call tomorrow.

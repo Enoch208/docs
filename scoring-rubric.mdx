@@ -1,0 +1,51 @@
+---
+title: "The scoring rubric"
+description: "How a composite 0-100 score is built — transparently and honestly."
+---
+
+## Composite score
+
+Every token gets a single **composite score (0–100)** derived from the live scouts:
+
+| Score | Tier | Read |
+|---|---|---|
+| **75 – 100** | Strong | Clean signals across the board |
+| **55 – 74** | Mixed | Mixed signals with upside — investigate with care |
+| **0 – 54** | Weak | Weak or unverified signals — investigate cautiously |
+
+The composite is the average of the **available** sub-scores. Unknowns are excluded so missing data doesn't pretend to be a 0.
+
+## Sub-scores
+
+| Scout | How it's scored |
+|---|---|
+| **On-chain** | 85 if both mint + freeze renounced · 55 if one · 20 if both live · **Unknown** if neither verifiable |
+| **Liquidity** | `liquidity_usd` scaled against $50k · **Unknown** if no source has it |
+| **Momentum** | Buy/sell pressure + 24h price change, **weighted by 24h volume** (a 9:1 ratio on $500/day reads thin, not perfect) |
+| **Smart-money** | Always **Unknown** in v1; dedicated scout ships in v1.5 |
+
+<Tip>
+  Unknown liquidity **caps the overall composite at 70** — a token can't read as "clean" when its biggest risk signal is unverifiable.
+</Tip>
+
+## Honesty rules
+
+These are baked into every agent's system prompt and the deterministic scorer alike:
+
+1. **Unknown is Unknown.** If a signal can't be verified, it's marked Unknown and down-weighted — never invented.
+2. **"Worth investigating," never "buy."** Every pick is framed as research, not advice.
+3. **Always name the standout risk.** Omitting it is a scoring error.
+4. **Absence of evidence is a mild negative**, not a neutral.
+
+The rules are the product's reason to exist — without them, the track record is worth nothing.
+
+## What gets surfaced on each pick
+
+Every pick — daily shortlist or on-demand `/evaluate` — carries:
+
+- The **composite score**, plus each sub-score (with `null` for Unknown).
+- **Top reasons** the scouts surfaced (2 strongest).
+- The **standout risk** (always present on a positive pick).
+- A **plain-English one-line read**.
+- The list of **unknowns** (so the gaps are explicit).
+- Full **market metrics** (price, 24h change, liquidity, FDV/MCAP, volume, age, holders, top-holders %, dev-wallet %, organic score, mint/freeze auth, launchpad, socials).
