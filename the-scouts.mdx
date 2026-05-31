@@ -1,6 +1,6 @@
 ---
 title: "The scouts"
-description: "Three live specialists + a lead. Each watches one signal it can verify."
+description: "Four live specialists + a lead. Each watches one signal it can verify."
 ---
 
 A scout watches **one signal** and grades only what it can verify. If the signal is missing, the scout returns `null` (Unknown) — not zero. The lead synthesizes the four scouts into the final ranked pick.
@@ -10,7 +10,7 @@ A scout watches **one signal** and grades only what it can verify. If the signal
 | **On-chain** | Mint authority, freeze authority, pair age | ✅ live |
 | **Liquidity** | Pool size (USD), liquidity-to-FDV ratio | ✅ live |
 | **Momentum** | Buy/sell pressure + 24h change, **weighted by volume** | ✅ live |
-| **Smart-money** | Notable / clustered wallet entries | 🔜 v1.5 |
+| **Smart-money** | Watchlist wallets among the first ~100 buyers | ✅ live |
 | **Scout lead** | All scout outputs → ranked shortlist | ✅ live |
 
 ---
@@ -75,17 +75,21 @@ Compared with what a naive "ratio × scaling" would say (100/100), this is hones
 
 ## Smart-money scout (v1.5)
 
-<Warning>
-  Not active yet. Every pick in v1 lists `smart_money` in its `unknowns` field. **No invented signal.**
-</Warning>
+**Watches** — a curated + algorithmically-discovered **watchlist** of Solana wallets that consistently get into winning tokens early. For each candidate, asks Helius for the first ~100 buyers and intersects with the watchlist.
 
-**Planned (v1.5):**
+**Scoring formula:**
 
-- Cluster detection on the first N buyers — is the float concentrated in known smart wallets or known farm wallets?
-- Top-trader proximity — has any wallet with a 3-month positive PnL bought in the first hour?
-- Dev wallet behavior — is the dev still net-buying or net-selling against the curve?
+```
+breadth      = min(75, len(watchlist_hits) × 15)         # 5+ hits saturate breadth
+quality_pump = mean(hit.watchlist_score for hit) × 0.25  # nudge by who the hitters are
+smart_money  = min(100, breadth + quality_pump)          # honest floor: 25 (chain data here, no hits)
+```
 
-Smart-money tracking needs an indexer of historical wallet behavior we haven't shipped yet. Until it does, the rubric explicitly excludes it from the composite — no estimating, no proxying.
+**Unknown** when the watchlist is empty or Helius is unreachable. **25** when chain data is present but no watchlist wallet bought — *"smart-money has not shown up here"* is itself a signal.
+
+**Why it matters** — the value isn't that "a famous wallet bought." It's that *multiple wallets that have repeatedly bought winners* converge on the same new token. That cross-validates the other three scouts.
+
+See [smart-money](smart-money) for the full deep-dive — how the watchlist is built from Helius + Birdeye + a curated seed, the per-wallet quality score, the weekly refresh, the `/api/smart-money/watchlist` endpoint, and source code links.
 
 ---
 

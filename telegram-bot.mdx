@@ -15,6 +15,7 @@ The bot is a thin Python client over the Meridian API. It long-polls Telegram, f
 | `/picks` | Today's ranked shortlist | `GET /api/daily-shortlist` |
 | `/track` | Public track record (hits + misses + open) | `GET /api/track-record` |
 | `/check <address>` | Score any Solana token | `POST /api/evaluate` |
+| `/smart_money` | Top wallets in the [smart-money](smart-money) watchlist | `GET /api/smart-money/watchlist` |
 
 Sends an instant *"scanning…"* / *"pulling…"* ack and **edits the same message** with the result — so a cold-starting backend never leaves the user staring at silence.
 
@@ -47,7 +48,7 @@ Worth investigating — never financial advice.
 🔎 $MRDN — score 31/100
 Meridian
 
-On-chain 85 · Liquidity 0 · Momentum 8 · Smart-money —
+On-chain 85 · Liquidity 0 · Momentum 8 · Smart-money 25
 
 💧 $651 liq · 👥 19 holders · 24h −50%
 
@@ -57,6 +58,20 @@ On-chain 85 · Liquidity 0 · Momentum 8 · Smart-money —
 Weak or unverified signals — investigate cautiously.
 
 Worth investigating — never financial advice.
+```
+  </Tab>
+
+  <Tab title="/smart_money">
+```
+🐋 Smart-money watchlist · top 5 (of 50)
+
+  72  R2yYRb…YdLy · discovered · 4 winners · rank ≈6.4
+  70  2CQgjc…ctFG · discovered · 4 winners · rank ≈9.5
+  68  Anubis…HF5w · discovered · 6 winners · rank ≈13.8
+  67  haqqiU…QgWq · discovered · 6 winners · rank ≈16.7
+  58  AgmLJB…zN51 · discovered · 3 winners · rank ≈4.7
+
+50 wallets tracked · scores update weekly.
 ```
   </Tab>
 

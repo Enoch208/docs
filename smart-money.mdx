@@ -1,0 +1,139 @@
+---
+title: "Smart-money scout"
+description: "The fourth scout overlays a curated whale watchlist on every pick. Live in v1."
+---
+
+A *watchlist* of Solana wallets that consistently get into winning tokens early. For each candidate the lead is about to rank, the smart-money scout checks how many of those wallets were among the **first ~100 buyers** and turns that into a 0–100 sub-score. No invented numbers.
+
+<Note>
+The scout is **deterministic** — it doesn't ask the lead to estimate smart-money. The watchlist owns the signal; the lead owns the narrative.
+</Note>
+
+## How the watchlist gets built
+
+A weekly job ([smart-money-refresh.yml](https://github.com/Enoch208/Meridian/blob/main/.github/workflows/smart-money-refresh.yml), Sundays 13:30 UTC) hits `POST /api/smart-money/refresh` on the backend. The endpoint:
+
+1. Pulls a basket of recent SOL tokens from DexScreener.
+2. For each token, asks **two independent sources** for buyers:
+   - **Helius** enhanced transactions, `sort-order=asc` → the literal first N buyers, by block.
+   - **Birdeye** top-traders → the highest-PnL traders per token.
+3. Adds your hand-**curated** seed list (`data/smart_money_curated.json` — public KOL wallets you vouch for).
+4. **Aggregates by wallet**, applies the quality gate, scores, upserts to MongoDB.
+
+### The quality gate
+
+A wallet is added to the watchlist only if it satisfies **one** of:
+
+- It's curated (you vouched for it), or
+- It appears as an early buyer / top trader on **≥ 2 distinct winning tokens**.
+
+One coincidence is not smart-money. The cross-token requirement is what separates "wallet you happened to see" from "wallet that consistently picks winners."
+
+### How wallets are scored on the watchlist
+
+```python
+# Per discovered wallet — pure logic, no LLM
+unique_tokens = len({obs.token_mint for obs in observations})
+base          = 70 if is_curated else min(60, unique_tokens × 15)
+early_bonus   = max(0, 30 - avg_rank_across_winners) × 0.5
+pnl_bonus     = min(15, sum(pnl_usd) / 1000)         # Birdeye PnL only
+score         = min(100, base + early_bonus + pnl_bonus)
+```
+
+Curated wallets start at 70 (you said so). Discovered wallets earn up to 60 by *breadth* (number of distinct winners) and gain bonuses from *depth* (low avg entry rank) and realized PnL when the source provides it.
+
+## How the scout scores a candidate
+
+Given the watchlist + a Helius API key, for each candidate the lead is about to grade:
+
+1. **Query** Helius for the first ~100 buyers of that candidate's mint (`sort-order=asc`).
+2. **Intersect** with the watchlist by wallet address.
+3. **Score:**
+
+   ```python
+   if not hits:                          # chain data exists, but no watchlist wallets bought
+       return 25, [], []                 # honest "no smart-money interest" floor
+   breadth      = min(75, len(hits) × 15)        # 5+ hits saturate breadth
+   avg_quality  = mean(watchlist_score for w in hits)
+   quality_pump = (avg_quality / 100) × 25       # nudge by who the hitters are
+   smart_money  = min(100, breadth + quality_pump)
+   ```
+
+| Situation | `smart_money` value | In `unknowns`? |
+|---|---|---|
+| No watchlist or no Helius key | `null` | yes |
+| Helius returned no buyers | `null` | yes |
+| Hits found | 25 → 100 | no |
+| No hits but chain data present | **25** (honest floor) | no |
+
+The result drops into `Pick.scores["smart_money"]`. The lead's narrative is preserved; only the smart-money number is overlaid.
+
+## Honesty rules
+
+The scout is bound by the same [honesty model](honesty-model) as the others:
+
+- **No watchlist → Unknown.** If the discovery pipeline hasn't run yet, every pick lists `smart_money` in `unknowns`. No "we think it's about 50."
+- **No Helius key → Unknown.** Same.
+- **No invented entries.** Wallets only land on the watchlist via the documented aggregation rule, never via guess or vibe.
+- **`25` is a real floor.** If chain data is there and watchlist wallets did not buy, the candidate gets 25 — not zero, not null. "Smart-money has not shown up here" is itself a signal worth surfacing.
+
+## Inspect the watchlist
+
+The watchlist is public. No auth needed.
+
+```bash
+# Top 10 wallets by score
+curl https://meridian-backend-qae0.onrender.com/api/smart-money/watchlist?limit=10
+```
+
+Response (one wallet):
+
+```json
+{
+  "address": "Anubis…HF5w",
+  "score": 68.1,
+  "label": null,
+  "sources": ["helius:earliest_buyers"],
+  "winners_caught": 6,
+  "avg_entry_rank": 13.8,
+  "cumulative_pnl_usd": null,
+  "is_curated": false,
+  "first_seen": "2026-05-30T23:50:55+00:00",
+  "last_seen":  "2026-05-30T23:50:55+00:00"
+}
+```
+
+`first_seen` is preserved across refreshes — so a wallet that has been on the list for weeks shows its real tenure even after every recompute.
+
+## In the bot
+
+`@usemeridianbot`'s [`/smart_money`](telegram-bot) command renders the top 10 in one message.
+
+## In the daily call
+
+When the daily run fires (`POST /api/run`), the scout runs deterministically against the latest watchlist for every pick. Picks now look like:
+
+```
+#1 $BUSTED  composite=91  smart_money=73  ✓ 8 smart-money wallets bought early
+#2 $GRUMBO  composite=74  smart_money=55  ✓ 5 smart-money wallets bought early
+```
+
+No more `smart_money: null` on the [daily shortlist](https://meridian-udkd.vercel.app/demo).
+
+## Sources & budgets
+
+| Source | Free tier | Used by |
+|---|---|---|
+| **Helius** | 100k req / mo | Discovery + per-candidate scoring |
+| **Birdeye** | 30k CUs / mo, 1 RPS | Discovery only (PnL cross-validation) |
+
+The weekly refresh queries ~20 winners × 2 sources ≈ 40 calls. The daily scout adds 1 Helius call per surviving candidate (≈ 3/day). Comfortably under both free tiers.
+
+A 1-hour **TTL response cache** sits in front of both sources (`<DATA_DIR>/cache/<source>/<mint>.json`) — retries within the window are free. Cache hits also skip the upstream throttle sleep.
+
+## Source code
+
+- Scout: [`backend/meridian/scouts/smart_money.py`](https://github.com/Enoch208/Meridian/blob/main/backend/meridian/scouts/smart_money.py)
+- Discovery pipeline: [`backend/meridian/datafeed/smart_money/`](https://github.com/Enoch208/Meridian/tree/main/backend/meridian/datafeed/smart_money)
+- Refresh endpoint: [`backend/meridian/api/server.py`](https://github.com/Enoch208/Meridian/blob/main/backend/meridian/api/server.py)
+- Weekly cron: [`.github/workflows/smart-money-refresh.yml`](https://github.com/Enoch208/Meridian/blob/main/.github/workflows/smart-money-refresh.yml)

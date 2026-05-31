@@ -9,19 +9,25 @@ A short, honest map. Anything not on this page is not on the roadmap.
 
 <CardGroup cols={2}>
   <Card title="Scout swarm" icon="circle-check">
-    Three live specialists (on-chain, liquidity, momentum) + a lead synthesizer. Volume-weighted momentum. Composite + standout risk + plain-English read.
+    **Four** live specialists (on-chain, liquidity, momentum, smart-money) + a lead synthesizer. Volume-weighted momentum. Composite + standout risk + plain-English read.
+  </Card>
+  <Card title="Smart-money scout" icon="circle-check">
+    Watchlist of wallets that consistently buy winners early — discovered from Helius + Birdeye, cross-validated against ≥ 2 distinct winners, refreshed weekly. See [smart-money](smart-money).
+  </Card>
+  <Card title="Scheduled refresh" icon="circle-check">
+    [Daily call](https://github.com/Enoch208/Meridian/blob/main/.github/workflows/daily-call.yml) regenerates the shortlist at 13:00 UTC; the [smart-money watchlist](https://github.com/Enoch208/Meridian/blob/main/.github/workflows/smart-money-refresh.yml) refreshes Sundays 13:30 UTC. No manual triggering.
   </Card>
   <Card title="Public track record" icon="circle-check">
     Append-only call log (MongoDB Atlas). Scorecard derived on every read. Hit/miss rules fixed and documented.
   </Card>
   <Card title="Three surfaces" icon="circle-check">
-    `/demo` (web), `@usemeridianbot` (Telegram), `/evaluate` (on-demand single-token).
+    `/demo` (web), `@usemeridianbot` (Telegram, with `/smart_money`), `/evaluate` (on-demand single-token).
   </Card>
   <Card title="Hold-to-unlock" icon="circle-check">
     Reown (Solana) wallet-connect on `/demo`. Reads `$MRDN` balance on-chain at request time. No enrollment.
   </Card>
   <Card title="Live API + auto docs" icon="circle-check">
-    FastAPI service with three public read endpoints; `/openapi.json` powers the API tab in these docs.
+    FastAPI service with public read endpoints (incl. `/api/smart-money/watchlist`); `/openapi.json` powers the API tab in these docs.
   </Card>
   <Card title="On-chain $MRDN" icon="circle-check">
     Minted on swarms.world via Frenzy Mode. Mint + freeze authorities renounced. Pool live.
@@ -31,17 +37,17 @@ A short, honest map. Anything not on this page is not on the roadmap.
 ## Next (v1.5 — in progress)
 
 <CardGroup cols={2}>
-  <Card title="Smart-money scout" icon="user-secret">
-    The dedicated fourth scout. Cluster detection on first N buyers, top-trader proximity, dev wallet behavior against the curve. Requires a historical wallet-behavior indexer we haven't shipped yet — until then, every pick lists `smart_money` as Unknown.
-  </Card>
-  <Card title="Daily refresh cron" icon="clock">
-    A keep-warm + scheduled `/api/run` so the shortlist refreshes on a fixed cadence (no manual triggering, no Render cold-start surprises).
-  </Card>
   <Card title="Alerts" icon="bell">
     Optional Telegram + email push when the day's #1 surfaces. Holder-gated.
   </Card>
   <Card title="Outcome auto-update" icon="arrows-rotate">
     The scheduled job that re-pulls prices for open calls and flips status to hit / miss. Currently triggered manually; v1.5 makes it automatic.
+  </Card>
+  <Card title="Smart-money deepening" icon="user-secret">
+    Layer dev-wallet behavior (net buyer vs net seller against the bonding curve) on top of the watchlist signal. Adds a fifth axis without changing the scoring contract.
+  </Card>
+  <Card title="Curated KOL seed list" icon="users">
+    Ship a small, publicly-sourced starter list of known Solana alpha wallets so a fresh self-host has signal on day one — without waiting for the discovery pass to bootstrap.
   </Card>
 </CardGroup>
 

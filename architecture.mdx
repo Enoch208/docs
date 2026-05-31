@@ -13,12 +13,16 @@ flowchart TB
         DS["DexScreener"]
         RPC["Solana mainnet RPC"]
         JUP["Jupiter (price + liquidity)"]
+        HEL["Helius (early buyers)"]
+        BIRD["Birdeye (top traders)"]
     end
 
     subgraph BE["Backend · Python · Render"]
         SW["Scout swarm<br/>(Swarms cloud API)"]
         PL["Pipeline<br/>scan → score → call"]
-        API["FastAPI<br/>/api/daily-shortlist<br/>/api/track-record<br/>/api/evaluate"]
+        SMD["Smart-money discovery<br/>(weekly)"]
+        WL[("Watchlist<br/>smart_money_wallets")]
+        API["FastAPI<br/>/api/daily-shortlist<br/>/api/track-record<br/>/api/evaluate<br/>/api/smart-money/watchlist"]
         STO[("Storage layer<br/>MongoDB Atlas<br/>(file fallback)")]
     end
 
@@ -29,7 +33,7 @@ flowchart TB
     end
 
     subgraph CL["Telegram bot · Python · VPS (pm2)"]
-        BOT["@usemeridianbot<br/>/start /picks /track /check"]
+        BOT["@usemeridianbot<br/>/picks /track /check /smart_money"]
     end
 
     subgraph CHAIN["On-chain · Solana"]
@@ -39,8 +43,14 @@ flowchart TB
     DS --> PL
     RPC --> PL
     JUP --> PL
+    HEL --> SMD
+    HEL --> SW
+    BIRD --> SMD
+    SMD --> WL
+    WL --> SW
     PL --> SW --> PL
     PL --> STO
+    WL --- STO
     STO --> API
     API --> DEMO
     API --> EVAL
@@ -86,10 +96,12 @@ All public endpoints are documented live in the **[API Reference](api-reference)
 | Endpoint | Method | Auth | What |
 |---|---|---|---|
 | `/health` | GET | none | Heartbeat |
-| `/api/daily-shortlist` | GET | none | Today's ranked picks |
+| `/api/daily-shortlist` | GET | none | Today's ranked picks (incl. live `smart_money` score) |
 | `/api/track-record` | GET | none | Hits / misses / open + recent calls |
 | `/api/evaluate` | POST | none | Score any Solana mint on demand |
+| `/api/smart-money/watchlist` | GET | none | Current watchlist of wallets that consistently buy winners |
 | `/api/run` | POST | `x-run-secret` | Regenerate the daily shortlist (admin) |
+| `/api/smart-money/refresh` | POST | `x-run-secret` | Recompute the smart-money watchlist (admin) |
 
 ## Honesty by construction
 
