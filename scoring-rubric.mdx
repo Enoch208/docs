@@ -33,7 +33,7 @@ See [the scouts](the-scouts) for the per-scout rules. In short:
 | **On-chain** | 20 / 55 / 85 | Both mint + freeze authorities unverifiable |
 | **Liquidity** | 0–100, scaled at $50k = 100 | No source has `liquidity_usd` |
 | **Momentum** | 0–100, **volume-weighted** | No buy/sell ratio AND no volume AND no 24h change |
-| **Smart-money** | **always None in v1** | The dedicated scout ships in v1.5 |
+| **Smart-money** | 0–100 (floor 25 when chain data is present but no watchlist hit) | No watchlist or Helius unreachable — see [smart-money](smart-money) |
 
 ## Worked example — $MRDN
 
@@ -90,11 +90,11 @@ A 31 is honest: clean authorities, but real-thin liquidity and weak momentum on 
 | `scores.onchain` | `85` | Authority safety |
 | `scores.liquidity` | `1` | Pool depth (Unknown if no source has it) |
 | `scores.momentum` | `8` | Buy/sell pressure × 24h change × volume confidence |
-| `scores.smart_money` | `null` | v1.5 |
+| `scores.smart_money` | `25` | Watchlist overlay — *no* watchlist wallet bought early (honest floor) |
 | `top_reasons` | `["Mint & freeze renounced", "Thin liquidity $651"]` | Two strongest reasons |
 | `standout_risk` | `"Thin liquidity — exit-rug risk"` | Always named on a positive pick |
 | `one_line_read` | `"Weak or unverified…"` | Composite-aware plain-English |
-| `unknowns` | `["smart_money"]` | Explicit list of gaps |
+| `unknowns` | `[]` when scout produces a score; `["smart_money"]` if no watchlist or Helius unreachable | Explicit list of gaps |
 | `metrics.*` | (full market grid) | price, 24h, liquidity, mcap, vol, age, holders, top-holders %, dev %, auth, launchpad, socials |
 
 Next: the [honesty model](honesty-model) — the four rules that override everything else.

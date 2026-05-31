@@ -19,12 +19,14 @@ description: "Common questions, answered straight."
     Different job, different cadence, different moat.
   </Accordion>
 
-  <Accordion title="What is smart-money tracking? Why is it 'Unknown'?" icon="user-secret">
-    Smart-money tracking is the *"who's already in"* signal — has any wallet with a 3-month positive PnL bought into this token in the first hour? Is the float concentrated with known smart wallets or known farm wallets?
+  <Accordion title="What is smart-money tracking? How does it work?" icon="user-secret">
+    Smart-money tracking is the *"who's already in"* signal — did any wallet on Meridian's curated **watchlist** buy this token in the first ~100 swaps?
 
-    It needs a historical wallet-behavior indexer we haven't shipped yet. Until it does, **every pick lists `smart_money` in its `unknowns` field** — we explicitly don't claim a signal we can't produce. Ships in **v1.5** ([roadmap](roadmap)).
+    The watchlist is built from Helius (earliest buyers of recent winners) + Birdeye (top traders per token) + a curated seed list. A wallet only makes the list if it appears across ≥ 2 distinct winners — one coincidence isn't smart-money.
 
-    No estimating. No proxying. Unknown is Unknown.
+    For each candidate, the scout asks Helius for the first ~100 buyers and intersects with the watchlist. Score blends breadth (how many distinct watchlist wallets hit) with quality (average watchlist score of the hitters). **Honest floor of 25** when chain data is present but no wallet bought; **Unknown** when the watchlist is empty or Helius is unreachable.
+
+    Full algorithm + endpoints in [smart-money](smart-money). No estimating. No proxying.
   </Accordion>
 
   <Accordion title="Why does my token have 'Unknown' liquidity?" icon="circle-info">
